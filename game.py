@@ -1,3 +1,10 @@
+"""
+TODO:
+- Current credit á að geta færst á milli leikja
+- Hægt að að vera að uppfæra current credit í leikjunum
+- Láta notanda vita hvort hann sló rétt/rangt inn (pop up gluggi?)
+"""
+
 from tkinter import *
 from random import randint
 
@@ -34,14 +41,12 @@ class guessTheColor:
         self.makeScoreLabel()
 
     def makeScoreLabel(self):
-        self.variable = StringVar()
-        self.variable.set('Stig: ')
-        self.stigPlaceholder = Label(self.frame, textvariable=self.variable).pack()
+        self.stigPlaceholder = Label(self.frame, text="Current credit: ").pack(side=LEFT)
 
         # StringVar() til að geta update-að label dynamicly
         self.credits = StringVar()
         self.credits.set(self.currentCredit)
-        self.stigLabel = Label(self.frame, textvariable=self.credits).pack()
+        self.stigLabel = Label(self.frame, textvariable=self.credits).pack(side=LEFT)
 
         quitButton = Button(self.frame, text="Quit: Press q", command=lambda id_btn='quit': self.btn_click(id_btn))
         quitButton.pack()
@@ -137,9 +142,7 @@ class guessTheNumber:
         self.makeScoreLabel()
 
     def makeScoreLabel(self):
-        self.variable = StringVar()
-        self.variable.set('Stig: ')
-        self.stigPlaceholder = Label(self.frame, textvariable=self.variable).pack(side=LEFT)
+        self.stigPlaceholder = Label(self.frame, text="Current credit: ").pack(side=LEFT)
 
         # StringVar() til að geta update-að label dynamicly
         self.credits = StringVar()
@@ -227,7 +230,13 @@ class mainMenu:
         btnColorGame.pack()
 
         btnNumberGame = Button(self.frame, text="Play number game: Press 2", command=lambda id_btn="number": self.playGame(id_btn))
-        btnNumberGame.pack()       
+        btnNumberGame.pack()
+
+        Label(self.master, text="Current credit: ").pack(side=LEFT)
+        self.credit = StringVar()
+        self.credit.set(0)
+        self.currentCreditLabel = Label(self.master, textvariable=self.credit)
+        self.currentCreditLabel.pack(side=LEFT)
 
     def playGame(self, btn):
         if(btn == "color"):
