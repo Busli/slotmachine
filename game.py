@@ -12,17 +12,23 @@ class guessTheColor:
         self.createLayout()
         
     def createLayout(self):
+
+        def key(event):
+            self.handleKeyboardEvent(event.char)
+        
         Label(self.master, text="I want to play a game").pack()
 
         self.frame = Frame(self.master, height=20, bd=1)
+        self.frame.bind("<Key>", key)
+        self.frame.focus_set()
         self.frame.pack(fill=X,padx=5, pady=5)
 
         # Colord buttons 
-        redButton = Button(self.frame, text="Red", command=lambda id_btn='red': self.btn_click(id_btn), background="red", activebackground="#fff")
+        redButton = Button(self.frame, text="Red: Press 1", command=lambda id_btn='red': self.btn_click(id_btn), background="red", activebackground="#fff")
         redButton.pack({'fill': 'x'})
-        blueButton = Button(self.frame, text="Blue", command=lambda id_btn='blue': self.btn_click(id_btn), background="blue", activebackground="#fff")
+        blueButton = Button(self.frame, text="Blue: Press 2", command=lambda id_btn='blue': self.btn_click(id_btn), background="blue", activebackground="#fff")
         blueButton.pack({'fill': 'x'})
-        greenButton = Button(self.frame, text="Green", command=lambda id_btn='green': self.btn_click(id_btn), background="green", activebackground="#fff")
+        greenButton = Button(self.frame, text="Green: Press 3", command=lambda id_btn='green': self.btn_click(id_btn), background="green", activebackground="#fff")
         greenButton.pack({'fill': 'x'})
 
         self.makeScoreLabel()
@@ -36,6 +42,9 @@ class guessTheColor:
         self.credits = StringVar()
         self.credits.set(self.currentCredit)
         self.stigLabel = Label(self.frame, textvariable=self.credits).pack()
+
+        quitButton = Button(self.frame, text="Quit: Press q", command=lambda id_btn='quit': self.btn_click(id_btn))
+        quitButton.pack()
 
     def randomColorGenerator(self):
         rand = randint(0,2)
@@ -65,6 +74,8 @@ class guessTheColor:
             self.updateScore()
             self.chosenColor = ''
             self.randomColorGenerator()
+        elif (btn == 'q'):
+            self.master.destroy()
         else:
             print("You chose the wrong color! Try again.")
             print('------------')
@@ -76,6 +87,21 @@ class guessTheColor:
 
     def updateScore(self):
         self.credits.set(str(self.currentCredit))
+
+    def handleKeyboardEvent(self, key):
+        # red
+        if(key == '1'):
+            self.btn_click('red')
+        # blue
+        elif(key == '2'):
+            self.btn_click('blue')
+        # green
+        elif(key == '3'):
+            self.btn_click('green')
+        elif(key == 'q' or key == 'Q'):
+            self.btn_click('q')
+        else:
+            print('Could not find button')
 
 #------------------------------------------------------------------
 
@@ -89,17 +115,23 @@ class guessTheNumber:
         self.createLayout()
         
     def createLayout(self):
+
+        def key(event):
+            self.handleKeyboardEvent(event.char)
+        
         Label(self.master, text="I want to play a game").pack()
 
         self.frame = Frame(self.master, height=20, bd=1)
+        self.frame.bind("<Key>", key)
+        self.frame.focus_set()
         self.frame.pack(fill=X,padx=5, pady=5)
 
         # Colord buttons 
-        oneButton = Button(self.frame, text="1", command=lambda id_btn='1': self.btn_click(id_btn))
+        oneButton = Button(self.frame, text="1: Press 1", command=lambda id_btn='1': self.btn_click(id_btn))
         oneButton.pack({'fill': 'x'})
-        twoButton = Button(self.frame, text="2", command=lambda id_btn='2': self.btn_click(id_btn))
+        twoButton = Button(self.frame, text="2: Press 2", command=lambda id_btn='2': self.btn_click(id_btn))
         twoButton.pack({'fill': 'x'})
-        threeButton = Button(self.frame, text="3", command=lambda id_btn='3': self.btn_click(id_btn))
+        threeButton = Button(self.frame, text="3: Press 3", command=lambda id_btn='3': self.btn_click(id_btn))
         threeButton.pack({'fill': 'x'})
 
         self.makeScoreLabel()
@@ -113,6 +145,9 @@ class guessTheNumber:
         self.credits = StringVar()
         self.credits.set(self.currentCredit)
         self.stigLabel = Label(self.frame, textvariable=self.credits).pack(side=LEFT)
+
+        quitButton = Button(self.master, text="Quit: Press q", command=lambda id_btn="q": self.btn_click(id_btn))
+        quitButton.pack()
 
     def randomNumberGenerator(self):
         rand = randint(1,3)
@@ -142,6 +177,8 @@ class guessTheNumber:
             self.updateScore()
             self.chosenNumber = ''
             self.randomNumberGenerator()
+        elif (btn == 'q'):
+            self.master.destroy()
         else:
             print("You chose the wrong number! Try again.")
             print('------------')
@@ -154,6 +191,16 @@ class guessTheNumber:
     def updateScore(self):
         self.credits.set(str(self.currentCredit))
 
+    def handleKeyboardEvent(self, key):
+        if(key == '1'):
+            self.btn_click('1')
+        elif(key == '2'):
+            self.btn_click('2')
+        elif(key == '3'):
+            self.btn_click('3')
+        elif(key == 'q' or key == 'Q'):
+            self.btn_click('q')
+
 
 #------------------------------------------------------------------
 
@@ -165,15 +212,22 @@ class mainMenu:
         self.createLayout()
 
     def createLayout(self):
+        # Keyboard listener
+        def key(event):
+            #self.handleKeyboardEvent(repr(event.char))
+            self.handleKeyboardEvent(event.char)
         self.frame = Frame(self.master, height=20, bd=1)
+        self.frame.bind("<Key>", key)
+        # Gefa frame focus til að geta notað lyklaborðið
+        self.frame.focus_set()
         self.frame.pack(fill=X)
         Label(self.frame, text="Choose a game").pack()
 
-        btnColorGame = Button(self.frame, text="Play color game", command=lambda id_btn="color": self.playGame(id_btn))
+        btnColorGame = Button(self.frame, text="Play color game: Press 1", command=lambda id_btn="color": self.playGame(id_btn))
         btnColorGame.pack()
 
-        btnNumberGame = Button(self.frame, text="Play number game", command=lambda id_btn="number": self.playGame(id_btn))
-        btnNumberGame.pack()
+        btnNumberGame = Button(self.frame, text="Play number game: Press 2", command=lambda id_btn="number": self.playGame(id_btn))
+        btnNumberGame.pack()       
 
     def playGame(self, btn):
         if(btn == "color"):
@@ -191,16 +245,21 @@ class mainMenu:
         else:
             print('Error, could not open game')
 
+    def handleKeyboardEvent(self, key):
+        print(key)
+        if(key == '1'):
+            self.playGame("color")
+        elif(key == '2'):
+            self.playGame("number")
+        else:
+            print('Failed to load game...')
+
 #------------------------------------------------------------------
 
 def main():
     root = Tk()
     root.title('Game of thrones')
     gameMenu = mainMenu(root)
-    #myGame = guessTheColor(root)
-    #myGame = guessTheNumber(root)
-    # Ekki viss um að það þurfi að gera þetta
-    # Þetta startar forritinu samt
     root.mainloop()
 
 if (__name__ == '__main__'):
