@@ -8,6 +8,7 @@ TODO:
 
 from tkinter import *
 from random import randint
+import slotmachine
 
 class scoreSystem:
 
@@ -348,9 +349,73 @@ class guessTheNumber:
             self.btn_click('3')
         elif(key == 'q' or key == 'Q'):
             self.btn_click('q')
-        elif(key == 'c' or key == 'C'):
-            self.btn_click("c")
 
+#------------------------------------------------------------------
+
+class slotmachineGame:
+#- Þarf að meðhöndla keyboard event
+#- Þarf að starta leiknum
+#- Þarf að breyta symbols
+#- Þarf að hugsa hvernig a að gera þetta GUI
+#- Breyta stigagjöf þannig þetta gefi lika þegar 2 réttir
+
+    def __init__(self, master, scoreSystem):
+        self.master = master
+        self.scoreSystem = scoreSystem
+        self.createLayout()
+
+    def createLayout(self):
+        def key(event):
+            self.handleKeyboardEvent(event.char)
+        
+        self.frame = Frame(self.master, bd=1, width=200, height=200)
+        self.frame.bind("<Key>", key)
+        # Gefa frame focus til að geta notað lyklaborðið
+        self.frame.focus_set()
+        self.frame.grid(row=0, padx=700, pady=370)
+
+        Label(self.frame, text="Welcome to the slotmachine!", font=(20)).grid(row=0, sticky=W)
+
+        btnSpinTheWheel = Button(self.frame, text="Spin the wheel! : Press 1", command=lambda: self.spinTheWheel(), font=(20))
+        btnSpinTheWheel.grid(row=1, sticky=N+S+E+W, columnspan=2)
+
+        self.displayText = Text(self.frame, height=1, width=2)
+        self.displayText.grid(row=2, sticky=N+S+E+W, columnspan=2)
+
+        self.stigPlaceholder = Label(self.frame, text="Current credit: ", font=(20)).grid(row=3, column=0, sticky=W)
+        # StringVar() til að geta update-að label dynamicly
+        self.credits = StringVar()
+        self.credits.set(self.scoreSystem.getScore())
+        self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=3, column=1, sticky=W)
+
+        quitButton = Button(self.frame, text="Quit: Press q", command=lambda: self.master.destroy(), font=(20))
+        quitButton.grid(row=4, sticky=W)
+
+        self.message = StringVar()
+        self.message.set("")
+        self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=5, sticky=W)
+
+    def spinTheWheel(self):
+        #slotmachine.main()
+        self.updateMessageLabel(None)
+
+    def handleKeyboardEvent(self, key):
+        if(key == '1'):
+            self.spinTheWheel()
+        elif(key == 'q' or key == 'Q'):
+            self.master.destroy()
+
+    def updateScoreLabel(self):
+        self.credits.set(self.scoreSystem.getScore())
+
+    def updateMessageLabel(self, action):
+        #self.message.set(<myMessage>)
+        if(action == None):
+            self.message.set("You are spinning the wheel!")
+            self.insertText("You are spinning the wheel!")
+
+    def insertText(self, text):
+        self.displayText.insert(END, text)
 
 #------------------------------------------------------------------
 
@@ -379,19 +444,21 @@ class mainMenu:
         btnColorGame.grid(row=1, sticky=N+S+E+W, columnspan=2)
         btnNumberGame = Button(self.frame, text="Play number game: Press 2", command=lambda id_btn="number": self.playGame(id_btn), font=(20))
         btnNumberGame.grid(row=2, sticky=N+S+E+W, columnspan=2)
+        btnSlotMachineGame = Button(self.frame, text="Play slotmachine game: Press 3", command=lambda id_btn="slotmachine": self.playGame(id_btn), font=(20))
+        btnSlotMachineGame.grid(row=3, sticky=N+S+E+W, columnspan=2)
         
         btnCashOut = Button(self.frame, text="Cash out: Press c", command=lambda id_btn="c": self.playGame(id_btn), font=(20))
-        btnCashOut.grid(row=3, sticky=N+S+E+W, columnspan=2)
+        btnCashOut.grid(row=4, sticky=N+S+E+W, columnspan=2)
 
-        Label(self.frame, text="Current credit: ", font=(20)).grid(row=4, column=0, sticky=W)
+        Label(self.frame, text="Current credit: ", font=(20)).grid(row=5, column=0, sticky=W)
         self.credit = StringVar()
         self.credit.set(self.score)
         self.currentCreditLabel = Label(self.frame, textvariable=self.credit, font=(20))
-        self.currentCreditLabel.grid(row=4, column=1, sticky=W)
+        self.currentCreditLabel.grid(row=5, column=1, sticky=W)
 
         self.message = StringVar()
         self.message.set("")
-        self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=5, sticky=W)
+        self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=6, sticky=W)
 
     def playGame(self, btn):
         if(btn == "color"):
@@ -407,6 +474,13 @@ class mainMenu:
             self.numberWindow = Toplevel()
             self.numberWindow.attributes('-fullscreen', True)
             guessTheNumber(self.numberWindow, self.scoreSystem)
+            self.updateMessageLabel('clear')
+        elif(btn == "slotmachine"):
+            print('You have chosen the slotmachine game!')
+            # open number game
+            self.slotmachineWindow = Toplevel()
+            self.slotmachineWindow.attributes('-fullscreen', True)
+            slotmachineGame(self.slotmachineWindow, self.scoreSystem)
             self.updateMessageLabel('clear')
         elif(btn == "c"):
             # cash outs
@@ -426,6 +500,8 @@ class mainMenu:
             self.playGame("color")
         elif(key == '2'):
             self.playGame("number")
+        elif(key == '3'):
+            self.playGame("slotmachine")
         elif(key == 'c' or key == 'C'):
             self.playGame("c")
         else:
