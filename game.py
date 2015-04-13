@@ -1,14 +1,14 @@
 """
-TODO:
-- Background image til að gera þetta meira cool?
-- Einhverjar skemmtilegar visual breytingar a GUI-inu
-
-- Þriðji leikurinn myndi vera slotmachine leikur, einföld utgáfa
+- Gera RFid þannig að maður fái meiri pening
 """
-
 from tkinter import *
 from random import randint
-import slotmachine
+#import slotmachine
+import RPi.GPIO as GPIO
+import time
+import serial
+import threading
+import queue
 
 class scoreSystem:
 
@@ -54,6 +54,7 @@ class cashOut:
         self.scoreSystem = scoreSystem
         self.gameMenu = gameMenu
         self.createLayout()
+        self.ser = serial.Serial('/dev/ttyACM0', 9600)
 
     def createLayout(self):
         def key(event):
@@ -128,7 +129,16 @@ class cashOut:
 
     def pumpAlcohol(self, pumpNumber):
         # Hér verður sent út merki til að dæla réttu áfengi
-        print('Pump number is: ' + str(pumpNumber))
+        if(pumpNumber == 1):
+            self.ser.write('2')
+            # Á að vera delay?
+            self.ser.write('3')
+        elif(pumpNumber == 2):
+            self.ser.write('4')
+            # Á að vera delay?
+            self.ser.write('5')
+        else:
+            print("Invalid pump")
 
 #------------------------------------------------------------------
 
@@ -421,8 +431,9 @@ class slotmachineGame:
 
 class mainMenu:
 
-    def __init__(self, master, scoreSystem):
+    def __init__(self, master, scoreSystem, queue):
         self.master = master
+        self.queue = queue
         self.scoreSystem = scoreSystem
         self.score = self.scoreSystem.getScore()
         self.createLayout()
@@ -517,15 +528,85 @@ class mainMenu:
         elif(action == 'clear'):
             self.message.set("")
 
+    def processIncoming(self):
+        """
+        Handle all the messages currently in the queue (if any).
+        """
+        #print("gameMenu: Checking in game queue")
+        while self.queue.qsize():
+            try:
+                print("Trying to update score")
+                #print("gameMenu: I iz gunna update teh score")
+                #print("gameMenu: queue size is: " + str(self.queue.qsize()))
+                self.scoreSystem.updateScore(1)
+                self.updateScore()
+                self.queue.get()
+            except Queue.Empty:
+                pass
+
+#------------------------------------------------------------------
+
+class ThreadedClient:
+
+    def __init__(self, master):
+        self.master = master
+        self.queue = queue.Queue()
+        
+        # Setup GUI part
+        self.myScoreSystem = scoreSystem()
+        self.gameMenu = mainMenu(self.master, self.myScoreSystem, self.queue)
+        self.myScoreSystem.bindGameMenuLabel(self.gameMenu)
+        
+        # Set up the thread to do asynchronous I/O
+        # More can be made if necessary
+        self.running = 1
+        self.thread1 = threading.Thread(target=self.workerThread1)
+        self.thread1.start()
+        self.thread2 = threading.Thread(target=self.workerThread2)
+        self.thread2.start()
+        
+        # Start the periodic call in the GUI to check if the queue contains
+        # anything
+        self.periodicCall()
+
+    def periodicCall(self):
+        """
+        Check every 100 ms if there is something new in the queue.
+        """
+        self.gameMenu.processIncoming()
+        if not self.running:
+            # This is the brutal stop of the system. You may want to do
+            # some cleanup before actually shutting it down.
+            import sys
+            sys.exit(1)
+        self.master.after(100, self.periodicCall)
+
+    def workerThread1(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(7,GPIO.IN,pull_up_down=GPIO.PUD_UP)
+        input = GPIO.input(7)
+        while self.running:
+            try:
+                GPIO.wait_for_edge(7, GPIO.FALLING)
+                self.queue.put(1)
+            except KeyboardInterrupt:
+                GPIO.cleanup
+
+    def workerThread2(self):
+        self.ser = serial.Serial('/dev/ttyACM0', 9600)
+        while self.running:
+            answer = self.ser.readline()
+            if(answer):
+                self.queue.put(1)
+
+    def endApplication(self):
+        self.running = 0
 #------------------------------------------------------------------
 
 def main():
     root = Tk()
     root.attributes('-fullscreen', True)
-    root.title('Game of thrones')
-    myScoreSystem = scoreSystem()
-    gameMenu = mainMenu(root, myScoreSystem)
-    myScoreSystem.bindGameMenuLabel(gameMenu)
+    client = ThreadedClient(root) 
     root.mainloop()
 
 if (__name__ == '__main__'):
