@@ -1,20 +1,22 @@
 """
 - Gera RFid þannig að maður fái meiri pening
+    örugglega ekki worth it
+- Breyta GUI eitthvað sma
+- slotmachine leikurinn
 """
 from tkinter import *
 from random import randint
 #import slotmachine
 import RPi.GPIO as GPIO
-import time
 import serial
 import threading
 import queue
 
+# Heldur utan um credit spilara
 class scoreSystem:
 
     def __init__(self):
         self.playerScore = 0
-        # self.userCreditInsert()
 
     def updateScore(self, plusMinus):
         if plusMinus == 1:
@@ -31,18 +33,11 @@ class scoreSystem:
         self.gameMenu = gameMenu
 
     def cashout(self, ammount):
-        print('Trying to cash out...')
         if(self.playerScore > 0):
-            print('You have successfully cashed out!')
             self.playerScore -= ammount
             self.gameMenu.updateScore()
         elif(self.playerScore == 0):
             print('Not enough credit to cash out...')
-
-    def userCreditInsert(self):
-        # Hér verður tekið inn merkið frá Arduino og unnið úr því
-        # Hvernig er best að láta RPi hlusta eftir high merki
-        print('I received a signlal!')
 
 #------------------------------------------------------------------
 
@@ -53,8 +48,8 @@ class cashOut:
         self.master = master
         self.scoreSystem = scoreSystem
         self.gameMenu = gameMenu
+        #self.ser = serial.Serial('/dev/ttyACM0', 9600)
         self.createLayout()
-        self.ser = serial.Serial('/dev/ttyACM0', 9600)
 
     def createLayout(self):
         def key(event):
@@ -64,7 +59,7 @@ class cashOut:
         self.frame = Frame(self.master, bd=1, width=200, height=200)
         self.frame.bind("<Key>", key)
         self.frame.focus_set()
-        self.frame.grid(row=0, padx=700, pady=370)
+        self.frame.grid(row=0, padx=500, pady=370)
 
         Label(self.frame, text="You are cashing out, choose your poison", font=(20)).grid(row=0, sticky=W)
 
@@ -115,8 +110,6 @@ class cashOut:
             self.btn_click('good')
         elif(key == 'q' or key == 'Q'):
             self.btn_click('q')
-        else:
-            print('Could not find button')
 
     def updateMessageLabel(self, action):
         if(action == 'buy'):
@@ -147,9 +140,6 @@ class guessTheColor:
     def __init__(self, master, scoreSystem):
         self.master = master
         self.scoreSystem = scoreSystem
-        self.currentCredit = self.scoreSystem.getScore()
-        self.chosenColor = ''
-        self.randomColorGenerator()
         self.createLayout()
         
     def createLayout(self):
@@ -160,7 +150,7 @@ class guessTheColor:
         self.frame = Frame(self.master, bd=1, width=200, height=200)
         self.frame.bind("<Key>", key)
         self.frame.focus_set()
-        self.frame.grid(row=0, padx=700, pady=370)
+        self.frame.grid(row=0, padx=500, pady=370)
 
         Label(self.frame, text="I want to play a game", font=(20)).grid(row=0, sticky=W)
 
@@ -179,7 +169,7 @@ class guessTheColor:
 
         # StringVar() til að geta update-að label dynamicly
         self.credits = StringVar()
-        self.credits.set(self.currentCredit)
+        self.credits.set(self.scoreSystem.getScore())
         self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=4, column=1, sticky=W)
 
         quitButton = Button(self.frame, text="Quit: Press q", command=lambda id_btn='quit': self.btn_click(id_btn), font=(20))
@@ -188,45 +178,24 @@ class guessTheColor:
         self.message = StringVar()
         self.message.set("")
         self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=6, sticky=W)
-        
-    def randomColorGenerator(self):
-        rand = randint(0,2)
-
-        if (rand == 0):
-            self.chosenColor = 'red'
-            print ('Right color: red')
-        elif (rand == 1):
-            self.chosenColor = 'blue'
-            print ('Right color: blue')
-        elif (rand == 2):
-            self.chosenColor = 'green'
-            print ('Right color: green')
-        else:
-            print('Error choosing a color!')
-        
-    
+            
     def btn_click(self, btn):
-        if (btn == self.chosenColor):
-            print ("You have chosen the right color! Try again.")
-            print('------------')
+        odds = randint(1,10)
+        if (btn == 'q'):
+            self.updateMessageLabel('clear', None)
+            self.master.destroy()
+        elif(odds < 5):
+            # You win
             self.updateMessageLabel('write', 'right')
             self.scoreSystem.updateScore(1)
             self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
-            self.chosenColor = ''
-            self.randomColorGenerator()
-        elif (btn == 'q'):
-            self.updateMessageLabel('clear', None)
-            self.master.destroy()
-        else:
-            print("You chose the wrong color! Try again.")
-            print('------------')
+        elif(odds > 5):
+            # You loose
             self.updateMessageLabel('write', 'wrong')
             self.scoreSystem.updateScore(0)
             self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
-            self.chosenColor = ''
-            self.randomColorGenerator()
 
     def updateScore(self):
         self.credits.set(str(self.currentCredit))
@@ -249,10 +218,6 @@ class guessTheColor:
             self.btn_click('green')
         elif(key == 'q' or key == 'Q'):
             self.btn_click('q')
-        elif(key == 'c' or key == 'C'):
-            self.btn_click("c")
-        else:
-            print('Could not find button')
 
 #------------------------------------------------------------------
 
@@ -261,9 +226,6 @@ class guessTheNumber:
     def __init__(self, master, scoreSystem):
         self.master = master
         self.scoreSystem = scoreSystem
-        self.currentCredit = self.scoreSystem.getScore()
-        self.chosenNumber = ''
-        self.randomNumberGenerator()
         self.createLayout()
         
     def createLayout(self):
@@ -274,11 +236,11 @@ class guessTheNumber:
         self.frame = Frame(self.master, bd=1, width=200, height=200)
         self.frame.bind("<Key>", key)
         self.frame.focus_set()
-        self.frame.grid(row=0, padx=700, pady=370)
+        self.frame.grid(row=0, padx=500, pady=370)
 
         Label(self.frame, text="I want to play a game", font=(20)).grid(row=0, sticky=W)
 
-        # Colord buttons 
+        # Number buttons 
         oneButton = Button(self.frame, text="1: Press 1", command=lambda id_btn='1': self.btn_click(id_btn), font=(20))
         oneButton.grid(row=1, sticky=N+S+E+W, columnspan=2)
         twoButton = Button(self.frame, text="2: Press 2", command=lambda id_btn='2': self.btn_click(id_btn), font=(20))
@@ -293,7 +255,7 @@ class guessTheNumber:
 
         # StringVar() til að geta update-að label dynamicly
         self.credits = StringVar()
-        self.credits.set(self.currentCredit)
+        self.credits.set(self.scoreSystem.getScore())
         self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=4, column=1, sticky=W)
 
         quitButton = Button(self.frame, text="Quit: Press q", command=lambda id_btn="q": self.btn_click(id_btn), font=(20))
@@ -302,44 +264,23 @@ class guessTheNumber:
         self.message = StringVar()
         self.message.set("")
         self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=6, sticky=W)
-
-    def randomNumberGenerator(self):
-        rand = randint(1,3)
-
-        if (rand == 1):
-            self.chosenNumber = '1'
-            print ('Right number: 1')
-        elif (rand == 2):
-            self.chosenNumber = '2'
-            print ('Right number: 2')
-        elif (rand == 3):
-            self.chosenNumber = '3'
-            print ('Right number: 3')
-        else:
-            print('Error choosing a number!')
-        
     
     def btn_click(self, btn):
-        if (btn == self.chosenNumber):
-            print ("You have chosen the right number! Try again.")
-            print('------------')
+        odds = randint(1,10)
+        if (btn == 'q'):
+            self.master.destroy()
+        elif(odds < 5):
+            # You win
             self.updateMessageLabel('write', 'right')
             self.scoreSystem.updateScore(1)
             self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
-            self.chosenNumber = ''
-            self.randomNumberGenerator()
-        elif (btn == 'q'):
-            self.master.destroy()
-        else:
-            print("You chose the wrong number! Try again.")
-            print('------------')
+        elif(odds > 5):
+            # You loose
             self.updateMessageLabel('write', 'wrong')
             self.scoreSystem.updateScore(0)
             self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
-            self.chosenNumber = ''
-            self.randomNumberGenerator()
 
     def updateScore(self):
         self.credits.set(str(self.currentCredit))
@@ -382,7 +323,7 @@ class slotmachineGame:
         self.frame.bind("<Key>", key)
         # Gefa frame focus til að geta notað lyklaborðið
         self.frame.focus_set()
-        self.frame.grid(row=0, padx=700, pady=370)
+        self.frame.grid(row=0, padx=500, pady=370)
 
         Label(self.frame, text="Welcome to the slotmachine!", font=(20)).grid(row=0, sticky=W)
 
@@ -435,7 +376,6 @@ class mainMenu:
         self.master = master
         self.queue = queue
         self.scoreSystem = scoreSystem
-        self.score = self.scoreSystem.getScore()
         self.createLayout()
 
     def createLayout(self):
@@ -447,7 +387,7 @@ class mainMenu:
         self.frame.bind("<Key>", key)
         # Gefa frame focus til að geta notað lyklaborðið
         self.frame.focus_set()
-        self.frame.grid(row=0, padx=700, pady=370)
+        self.frame.grid(row=0, padx=500, pady=370)
         
         Label(self.frame, text="Choose a game", font=(20)).grid(row=0, sticky=W)
 
@@ -463,7 +403,7 @@ class mainMenu:
 
         Label(self.frame, text="Current credit: ", font=(20)).grid(row=5, column=0, sticky=W)
         self.credit = StringVar()
-        self.credit.set(self.score)
+        self.credit.set(self.scoreSystem.getScore())
         self.currentCreditLabel = Label(self.frame, textvariable=self.credit, font=(20))
         self.currentCreditLabel.grid(row=5, column=1, sticky=W)
 
@@ -502,8 +442,6 @@ class mainMenu:
                 self.cashoutWindow = Toplevel()
                 self.cashoutWindow.attributes('-fullscreen', True)
                 cashOut(self.cashoutWindow, self.scoreSystem, self)
-        else:
-            print('Error, could not open game')
 
     def handleKeyboardEvent(self, key):
         print(key)
@@ -515,8 +453,6 @@ class mainMenu:
             self.playGame("slotmachine")
         elif(key == 'c' or key == 'C'):
             self.playGame("c")
-        else:
-            print('Failed to load game...')
 
     def updateScore(self):
         self.score = self.scoreSystem.getScore()
@@ -575,8 +511,6 @@ class ThreadedClient:
         """
         self.gameMenu.processIncoming()
         if not self.running:
-            # This is the brutal stop of the system. You may want to do
-            # some cleanup before actually shutting it down.
             import sys
             sys.exit(1)
         self.master.after(100, self.periodicCall)
@@ -593,7 +527,7 @@ class ThreadedClient:
                 GPIO.cleanup
 
     def workerThread2(self):
-        self.ser = serial.Serial('/dev/ttyACM0', 9600)
+        #self.ser = serial.Serial('/dev/ttyACM0', 9600)
         while self.running:
             answer = self.ser.readline()
             if(answer):
@@ -601,6 +535,7 @@ class ThreadedClient:
 
     def endApplication(self):
         self.running = 0
+        
 #------------------------------------------------------------------
 
 def main():
