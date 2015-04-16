@@ -48,7 +48,7 @@ class SlotMachine(object):
 
         for cycle in range1(max(total_cycles)):
             line = sjoin( [reel.symbol(cycle) for reel in reels] )
-            if display: print(nl*5, line)
+            if display: (nl*5, line)
             sleep(pause_time)
 
         return self.done(reels, display, line)
@@ -59,11 +59,9 @@ class SlotMachine(object):
         S      = [r.symbol() for r in reels]
         won    = bool(len(set(S)) == 1)
         amount = symbols[first(S)] if won else 0
-
-        print(line)
         
         if won and display:
-        #if won:
+            #if won:
             print(winmsg % symbols[first(S)])
         return line, amount
 
@@ -81,12 +79,14 @@ def test():
     print(" wins", wins)
     print(" total", total)
 
+def main():
+    output = SlotMachine().run(pause_time)
+    return output
+    # Þetta er línan
+    # output[0]
+    # Þetta er vinningurinn
+    # output[1]
+    #test()
 
 if __name__ == "__main__":
-    #SlotMachine().run(pause_time)
-    test()
-
-"""def main():
-    # Þetta getur skilað linunni sem endað var með ásamt vinnings upphæðinni
-    SlotMachine().run(pause_time)
-"""
+    main()

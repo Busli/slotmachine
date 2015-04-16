@@ -1,16 +1,12 @@
-"""
-- Gera RFid þannig að maður fái meiri pening
-    örugglega ekki worth it
-- Breyta GUI eitthvað sma
-- slotmachine leikurinn
-"""
 from tkinter import *
 from random import randint
-#import slotmachine
 import RPi.GPIO as GPIO
 import serial
 import threading
 import queue
+from utils import Loop, range1, first, sjoin, nl
+from time import sleep
+import os
 
 # Heldur utan um credit spilara
 class scoreSystem:
@@ -18,10 +14,14 @@ class scoreSystem:
     def __init__(self):
         self.playerScore = 0
 
-    def updateScore(self, plusMinus):
-        if plusMinus == 1:
+    def updateScore(self, action):
+        if action == 1:
             self.playerScore += 100
-        elif plusMinus == 0 and self.playerScore is not 0:
+        elif action == 2:
+            self.playerScore += 600
+        elif action == 3:
+            self.playerScore -= 200
+        elif action == 0 and self.playerScore is not 0:
             self.playerScore -= 100
 
         self.gameMenu.updateScore()
@@ -48,7 +48,6 @@ class cashOut:
         self.master = master
         self.scoreSystem = scoreSystem
         self.gameMenu = gameMenu
-        #self.ser = serial.Serial('/dev/ttyACM0', 9600)
         self.createLayout()
 
     def createLayout(self):
@@ -86,7 +85,7 @@ class cashOut:
             if(self.scoreSystem.getScore() >= 100):
                 print('You bought bad alcohol...')
                 self.scoreSystem.cashout(100)
-                # self.pumpAlcohol(1)
+                self.pumpAlcohol(1)
                 self.updateScoreLabel()
                 self.updateMessageLabel('buy')
             else:
@@ -95,7 +94,7 @@ class cashOut:
             if(self.scoreSystem.getScore() >= 200):
                 print('You bought good alcohol...')
                 self.scoreSystem.cashout(200)
-                # self.pumpAlcohol(2)
+                self.pumpAlcohol(2)
                 self.updateScoreLabel()
                 self.updateMessageLabel('buy')
             else:
@@ -123,13 +122,11 @@ class cashOut:
     def pumpAlcohol(self, pumpNumber):
         # Hér verður sent út merki til að dæla réttu áfengi
         if(pumpNumber == 1):
-            self.ser.write('2')
-            # Á að vera delay?
-            self.ser.write('3')
+            #self.ser.write('2')
+            os.system("python runPump1.py")
         elif(pumpNumber == 2):
-            self.ser.write('4')
-            # Á að vera delay?
-            self.ser.write('5')
+            #self.ser.write('4')
+            os.system("python runPump2.py")
         else:
             print("Invalid pump")
 
@@ -168,7 +165,7 @@ class guessTheColor:
         self.stigPlaceholder = Label(self.frame, text="Current credit: ", font=(20)).grid(row=4, column=0, sticky=W)
 
         # StringVar() til að geta update-að label dynamicly
-        self.credits = StringVar()
+        self.credits = IntVar()
         self.credits.set(self.scoreSystem.getScore())
         self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=4, column=1, sticky=W)
 
@@ -180,6 +177,12 @@ class guessTheColor:
         self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=6, sticky=W)
             
     def btn_click(self, btn):
+        if(btn == 'm'):
+            self.scoreSystem.updateScore(2)
+            self.updateScore()
+        elif(self.scoreSystem.getScore() is 0):
+            self.message.set("Not enough credit")
+            return
         odds = randint(1,10)
         if (btn == 'q'):
             self.updateMessageLabel('clear', None)
@@ -188,17 +191,15 @@ class guessTheColor:
             # You win
             self.updateMessageLabel('write', 'right')
             self.scoreSystem.updateScore(1)
-            self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
         elif(odds > 5):
             # You loose
             self.updateMessageLabel('write', 'wrong')
             self.scoreSystem.updateScore(0)
-            self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
 
     def updateScore(self):
-        self.credits.set(str(self.currentCredit))
+        self.credits.set(self.scoreSystem.getScore())
 
     def updateMessageLabel(self, action, msg):
         if(action == 'write'):
@@ -218,6 +219,8 @@ class guessTheColor:
             self.btn_click('green')
         elif(key == 'q' or key == 'Q'):
             self.btn_click('q')
+        elif(key == 'm' or key == 'M'):
+            self.btn_click('m')
 
 #------------------------------------------------------------------
 
@@ -254,7 +257,7 @@ class guessTheNumber:
         self.stigPlaceholder = Label(self.frame, text="Current credit: ", font=(20)).grid(row=4, column=0, sticky=W)
 
         # StringVar() til að geta update-að label dynamicly
-        self.credits = StringVar()
+        self.credits = IntVar()
         self.credits.set(self.scoreSystem.getScore())
         self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=4, column=1, sticky=W)
 
@@ -266,6 +269,12 @@ class guessTheNumber:
         self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=6, sticky=W)
     
     def btn_click(self, btn):
+        if(btn == 'm'):
+            self.scoreSystem.updateScore(2)
+            self.updateScore()
+        elif(self.scoreSystem.getScore() is 0):
+            self.message.set("Not enough credit")
+            return
         odds = randint(1,10)
         if (btn == 'q'):
             self.master.destroy()
@@ -273,17 +282,15 @@ class guessTheNumber:
             # You win
             self.updateMessageLabel('write', 'right')
             self.scoreSystem.updateScore(1)
-            self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
         elif(odds > 5):
             # You loose
             self.updateMessageLabel('write', 'wrong')
             self.scoreSystem.updateScore(0)
-            self.currentCredit = self.scoreSystem.getScore()
             self.updateScore()
 
     def updateScore(self):
-        self.credits.set(str(self.currentCredit))
+        self.credits.set(self.scoreSystem.getScore())
 
     def updateMessageLabel(self, action, msg):
         if(action == 'write'):
@@ -300,21 +307,47 @@ class guessTheNumber:
             self.btn_click('3')
         elif(key == 'q' or key == 'Q'):
             self.btn_click('q')
+        elif(key == 'm' or key == 'M'):
+            self.btn_click('m')
+            
+#----------------------------------------------------------------------------------------
+
+class Reel(object):
+    def __init__(self, rotations, max_cycle, symbols):
+        self.reel      = Loop(symbols.keys(), name="symbol")
+        self.rotations = rotations
+        self.max_cycle = max_cycle
+
+    def symbol(self, cycle=0):
+        if cycle and cycle <= self.max_cycle:
+            self.rotate()
+        return self.reel.symbol
+
+    def rotate(self): self.reel.next(self.rotations)
 
 #------------------------------------------------------------------
 
 class slotmachineGame:
-#- Þarf að meðhöndla keyboard event
-#- Þarf að starta leiknum
-#- Þarf að breyta symbols
-#- Þarf að hugsa hvernig a að gera þetta GUI
-#- Breyta stigagjöf þannig þetta gefi lika þegar 2 réttir
 
     def __init__(self, master, scoreSystem):
         self.master = master
         self.scoreSystem = scoreSystem
+        self.setupGame()
         self.createLayout()
 
+    def setupGame(self):
+        self.num_reels  = 3
+        self.pause_time = 0.05
+        self.first_stop = 10     # stop first reel
+        self.reel_delay = 15     # range of delay to stop each reel
+        self.winmsg     = "You've won!! Collect your prize : %d"
+
+        self.symbols = {
+            '✿': 500,
+            '❖': 1000,
+            '✬': 2500,
+         }
+    
     def createLayout(self):
         def key(event):
             self.handleKeyboardEvent(event.char)
@@ -335,7 +368,7 @@ class slotmachineGame:
 
         self.stigPlaceholder = Label(self.frame, text="Current credit: ", font=(20)).grid(row=3, column=0, sticky=W)
         # StringVar() til að geta update-að label dynamicly
-        self.credits = StringVar()
+        self.credits = IntVar()
         self.credits.set(self.scoreSystem.getScore())
         self.stigLabel = Label(self.frame, textvariable=self.credits, font=(20)).grid(row=3, column=1, sticky=W)
 
@@ -347,25 +380,74 @@ class slotmachineGame:
         self.messageLabel = Label(self.frame, textvariable=self.message, font=(20)).grid(row=5, sticky=W)
 
     def spinTheWheel(self):
-        #slotmachine.main()
-        self.updateMessageLabel(None)
+        if(self.scoreSystem.getScore() == 0):
+            self.message.set("Not enough credit")
+        else:
+            # Message-ið er prentað eftir að buið er að keyra leikinn
+            # þarf kannski að gera thread
+            self.updateMessageLabel('write', "The wheel has stopped!")
+            output = self.run(self.pause_time)
+            self.insertText(output[0])
+            self.checkForVictory(output[1])
+
+    def checkForVictory(self, fromSlot):
+        if(fromSlot == 0):
+            self.updateMessageLabel('write', "You lost! Try again")
+            self.scoreSystem.updateScore(3)
+            self.updateScoreLabel()
+        elif(fromSlot > 0):
+            self.updateMessageLabel('write', "You won!!!")
+            self.scoreSystem.updateScore(2)
+            self.updateScoreLabel()
+
+    def run(self, pause_time, display=True):
+        rotations    = [randint(1,4) for _ in range(self.num_reels)]    # reel rotations per cycle
+        rd           = self.reel_delay
+        total_cycles = [randint(x, x+rd) for x in range(self.first_stop, self.first_stop + rd*self.num_reels, rd)]
+
+        reels        = [Reel(rotations, max_cycle, self.symbols) for rotations, max_cycle in zip(rotations, total_cycles)]
+
+        for cycle in range1(max(total_cycles)):
+            line = sjoin( [reel.symbol(cycle) for reel in reels] )
+            # hér er verið að reyna að prenta
+            self.insertText(line)
+            if display: (nl*5, line)
+            sleep(pause_time)
+
+        return self.done(reels, display, line)
+
+    def done(self, reels, display, line):
+        # Hér þarf kannski að gefa vinning fyrir 2 rétta
+        # Þá myndir 2 rettir vera upphæðin sem var bettað, 3 rettir væri eitthvað meira
+        S      = [r.symbol() for r in reels]
+        won    = bool(len(set(S)) == 1)
+        amount = self.symbols[first(S)] if won else 0
+        
+        if won and display:
+            #if won:
+            print(self.winmsg % self.symbols[first(S)])
+        return line, amount
 
     def handleKeyboardEvent(self, key):
         if(key == '1'):
             self.spinTheWheel()
         elif(key == 'q' or key == 'Q'):
             self.master.destroy()
+        elif(key == 'm' or key == 'M'):
+            self.scoreSystem.updateScore(2)
+            self.updateScoreLabel()
 
     def updateScoreLabel(self):
         self.credits.set(self.scoreSystem.getScore())
 
-    def updateMessageLabel(self, action):
-        #self.message.set(<myMessage>)
-        if(action == None):
-            self.message.set("You are spinning the wheel!")
-            self.insertText("You are spinning the wheel!")
+    def updateMessageLabel(self, action, msg):
+        if(action == 'write'):
+            self.message.set(msg)
+        elif(action == 'clear'):
+            self.message.set("")
 
     def insertText(self, text):
+        self.displayText.delete(1.0, END)
         self.displayText.insert(END, text)
 
 #------------------------------------------------------------------
@@ -402,7 +484,7 @@ class mainMenu:
         btnCashOut.grid(row=4, sticky=N+S+E+W, columnspan=2)
 
         Label(self.frame, text="Current credit: ", font=(20)).grid(row=5, column=0, sticky=W)
-        self.credit = StringVar()
+        self.credit = IntVar()
         self.credit.set(self.scoreSystem.getScore())
         self.currentCreditLabel = Label(self.frame, textvariable=self.credit, font=(20))
         self.currentCreditLabel.grid(row=5, column=1, sticky=W)
@@ -453,6 +535,9 @@ class mainMenu:
             self.playGame("slotmachine")
         elif(key == 'c' or key == 'C'):
             self.playGame("c")
+        elif(key == 'm' or key == 'M'):
+            self.scoreSystem.updateScore(2)
+            self.updateScore()
 
     def updateScore(self):
         self.score = self.scoreSystem.getScore()
@@ -498,8 +583,8 @@ class ThreadedClient:
         self.running = 1
         self.thread1 = threading.Thread(target=self.workerThread1)
         self.thread1.start()
-        self.thread2 = threading.Thread(target=self.workerThread2)
-        self.thread2.start()
+        #self.thread2 = threading.Thread(target=self.workerThread2)
+        #self.thread2.start()
         
         # Start the periodic call in the GUI to check if the queue contains
         # anything
@@ -526,12 +611,12 @@ class ThreadedClient:
             except KeyboardInterrupt:
                 GPIO.cleanup
 
-    def workerThread2(self):
+    #def workerThread2(self):
         #self.ser = serial.Serial('/dev/ttyACM0', 9600)
-        while self.running:
-            answer = self.ser.readline()
-            if(answer):
-                self.queue.put(1)
+        #while self.running:
+            #answer = self.ser.readline()
+            #if(answer):
+                #self.queue.put(1)
 
     def endApplication(self):
         self.running = 0
